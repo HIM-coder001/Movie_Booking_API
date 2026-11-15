@@ -44,7 +44,7 @@ export const createMovie = async (req, res) => {
   }
 };
 
-/**export const getAllMovies = async (req, res) => {
+export const getAllMovies = async (req, res) => {
   try {
     const movies = await Movie.find();
     res.status(200).json({
@@ -64,6 +64,8 @@ export const createMovie = async (req, res) => {
   }
 };
 
+
+/**
 export const getMovie = async (req, res) => {
   try {
     const id = req.params.id;
