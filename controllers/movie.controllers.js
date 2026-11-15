@@ -46,13 +46,61 @@ export const createMovie = async (req, res) => {
 
 export const getAllMovies = async (req, res) => {
   try {
-    const movies = await Movie.find();
-    res.status(200).json({
+    //Pagination logic
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    //Filtering logic
+    const filter = {};
+
+    //Exact matches for language and releaseStatus
+    if (req.query.language) {
+      filter.language = req.query.language;
+    }
+
+    if (req.query.releaseStatus) {
+      filter.releaseStatus = req.query.releaseStatus;
+    }
+
+    //Partial matches for title,director & casts using regex and case-insensitive search
+    if (req.query.title) {
+      filter.title = { $regex: req.query.title, $options: "i" };
+    }
+
+    if (req.query.director) {
+      filter.director = { $regex: req.query.director, $options: "i" };
+    }
+
+    if (req.query.casts) {
+      filter.casts = { $regex: req.query.casts, $options: "i" };
+    }
+
+    //Sorting logic
+    const sortBy = req.query.sortBy || "releaseDate";
+    const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
+    const sortOptions = { [sortBy]: sortOrder };
+
+    const [movies, totalMovies] = await Promise.all([
+      Movie.find(filter).sort(sortOptions).skip(offset).limit(limit),
+      Movie.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalMovies / limit);
+
+    return res.status(200).json({
       success: true,
-      error: {},
-      message: "Movies retrieved successfully",
+      pagination: {
+        currentPage: page,
+        totalPages,
+        limit,
+        totalMovies,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
       data: movies,
     });
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -63,7 +111,6 @@ export const getAllMovies = async (req, res) => {
     });
   }
 };
-
 
 export const getMovie = async (req, res) => {
   try {
@@ -94,7 +141,6 @@ export const getMovie = async (req, res) => {
     });
   }
 };
-
 
 export const updateMovie = async (req, res) => {
   try {
@@ -151,12 +197,11 @@ export const updateMovie = async (req, res) => {
   }
 };
 
-
 export const deleteMovie = async (req, res) => {
   try {
     const id = req.params.id;
     const movie = await Movie.findByIdAndDelete(id);
-    if(!movie) {
+    if (!movie) {
       return res.status(404).json({
         success: false,
         error: "Movie not found",
@@ -171,7 +216,6 @@ export const deleteMovie = async (req, res) => {
       message: "Movie deleted successfully",
       data: {},
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
