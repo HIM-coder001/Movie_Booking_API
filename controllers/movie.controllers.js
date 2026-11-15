@@ -148,6 +148,7 @@ export const updateMovie = async (req, res) => {
     });
   }
 };
+*/
 
 export const deleteMovie = async (req, res) => {
   try {
@@ -179,4 +180,3 @@ export const deleteMovie = async (req, res) => {
     });
   }
 };
-*/
