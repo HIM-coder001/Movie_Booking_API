@@ -45,18 +45,29 @@ export const createMovie = async (req, res) => {
   }
 };
 
-export const getAllMovies = async (req, res) => {
+
+export const getAllMovies = async (req, res, next) => {
   try {
-    //Pagination logic
+    // Pagination logic
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const safeLimit = Math.min(limit , 100)
+    const safeLimit = Math.min(limit, 100);
     const offset = (page - 1) * safeLimit;
 
-    //Filtering logic
+    // Filtering logic
     const filter = {};
 
-    //Exact matches for language and releaseStatus
+    // General search logic (checks title, director, and description)
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, "i");
+      filter.$or = [
+        { title: searchRegex },
+        { director: searchRegex },
+        { description: searchRegex },
+      ];
+    }
+
+    // Exact matches for language and releaseStatus
     if (req.query.language) {
       filter.language = req.query.language;
     }
@@ -65,7 +76,7 @@ export const getAllMovies = async (req, res) => {
       filter.releaseStatus = req.query.releaseStatus;
     }
 
-    //Partial matches for title,director & casts using regex and case-insensitive search
+    // Specific field partial matches if passed individually
     if (req.query.title) {
       filter.title = { $regex: req.query.title, $options: "i" };
     }
@@ -78,7 +89,7 @@ export const getAllMovies = async (req, res) => {
       filter.casts = { $regex: req.query.casts, $options: "i" };
     }
 
-    //Sorting logic
+    // Sorting logic
     const sortBy = req.query.sortBy || "releaseDate";
     const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
     const sortOptions = { [sortBy]: sortOrder };
@@ -92,6 +103,8 @@ export const getAllMovies = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      statusCode: 200,
+      message: "Movies fetched successfully",
       pagination: {
         currentPage: page,
         totalPages,
@@ -104,13 +117,8 @@ export const getAllMovies = async (req, res) => {
     });
     
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: "Internal server error",
-      data: {},
-    });
+    // Pass unexpected errors to your global error handler middleware
+    next(error);
   }
 };
 
