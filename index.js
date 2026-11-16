@@ -2,8 +2,11 @@ import express from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
 import mongoose from 'mongoose';
-import movieRoutes from './routes/movie.routes.js';
 import errorHandler from './middleware/errorHandler.js'
+
+import movieRoutes from './routes/movie.routes.js';
+import theaterRoutes from './routes/theater.routes.js';
+ 
 
 const app = express();
 const PORT = process.env.PORT || 3000;  
@@ -13,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 //Routes
 app.use(movieRoutes);
+app.use(theaterRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello, World!');
