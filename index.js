@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import mongoose from 'mongoose';
 import movieRoutes from './routes/movie.routes.js';
+import errorHandler from './middleware/errorHandler.js'
 
 const app = express();
 const PORT = process.env.PORT || 3000;  
@@ -16,6 +17,15 @@ app.use(movieRoutes);
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
+
+//Handle 404 Not Found for any route that doesn't exist
+app.use((req, res, next) => {
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  res.status(404);
+  next(error); 
+});
+
+app.use(errorHandler); // Use the error handler middleware after all routes
 
 async function startServer() {
   try {

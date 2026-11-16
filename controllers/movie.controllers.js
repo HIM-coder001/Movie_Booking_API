@@ -1,4 +1,5 @@
 import Movie from "../models/movie.model.js";
+import { sendSuccess , sendError } from "../utils/response.utils.js";
 
 export const createMovie = async (req, res) => {
   try {
@@ -49,7 +50,8 @@ export const getAllMovies = async (req, res) => {
     //Pagination logic
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
+    const safeLimit = Math.min(limit , 100)
+    const offset = (page - 1) * safeLimit;
 
     //Filtering logic
     const filter = {};
@@ -82,18 +84,18 @@ export const getAllMovies = async (req, res) => {
     const sortOptions = { [sortBy]: sortOrder };
 
     const [movies, totalMovies] = await Promise.all([
-      Movie.find(filter).sort(sortOptions).skip(offset).limit(limit),
+      Movie.find(filter).sort(sortOptions).skip(offset).limit(safeLimit),
       Movie.countDocuments(filter),
     ]);
 
-    const totalPages = Math.ceil(totalMovies / limit);
+    const totalPages = Math.ceil(totalMovies / safeLimit);
 
     return res.status(200).json({
       success: true,
       pagination: {
         currentPage: page,
         totalPages,
-        limit,
+        limit: safeLimit,
         totalMovies,
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
