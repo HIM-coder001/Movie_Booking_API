@@ -126,7 +126,7 @@ export const getAllBookings = async (req, res , next) => {
 };
 
 //3.Get single booking by ID
-export const getBooking = async ( req, res ) => {
+export const getBooking = async ( req, res, next ) => {
   try {
     const booking = await Booking.findById( req.params.id )
     .populate({
@@ -156,3 +156,39 @@ export const getBooking = async ( req, res ) => {
     next(error);
   }
 }
+
+//4. Update booking payment status (and release seats if cancelled)
+export const updateBooking = async ( req , res , next ) => {
+  try {
+    const booking = await Booking.findByIdAndUpdate( req.params.id );
+    if(!booking){
+      const error = new Error("Booking not found");
+      error.statusCode = 404;
+      return next(error);
+    };
+
+    if(booking.paymentStatus === 'completed') {
+      const error = new Error("Cannot cancel a booking that is already completed");
+      error.statusCode = 400;
+      return next(error);
+    };
+     
+    booking.paymentStatus = 'cancelled';
+    await booking.save();
+
+    // Release the seats back to the showtime pool
+    await Showtime.findByIdAndUpdate(booking.showtime, {
+      $pull: { bookedSeats: { $in: booking.seatsBooked } }
+    });
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: "Booking cancelled and seats released successfully",
+      data: booking,
+    });
+    
+  } catch (error) {
+    next(error)
+  }
+};

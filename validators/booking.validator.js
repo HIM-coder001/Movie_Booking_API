@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const bookingValidationSchema = z.object({
   showtime: z.string().min(1, "Showtime ID is required"),
@@ -7,10 +7,9 @@ export const bookingValidationSchema = z.object({
     .min(1, "At least one seat must be selected"),
 });
 
-export const updateBookingStatusSchema = z.object({
-  paymentStatus: z.enum(["pending", "completed", "cancelled"], {
-    errorMap: () => ({
-      message: "Status must be pending, completed, or cancelled",
-    }),
+// Users can only cancel their own bookings; completion is handled via payment webhooks
+export const cancelBookingSchema = z.object({
+  paymentStatus: z.literal('cancelled', {
+    errorMap: () => ({ message: "Status can only be updated to cancelled by the user" }),
   }),
 });
