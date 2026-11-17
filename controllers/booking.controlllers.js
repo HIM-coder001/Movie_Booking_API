@@ -1,8 +1,9 @@
 import Booking from "../models/booking.model.js";
 import Showtime from "../models/showtime.model.js";
+import crypto from "crypto";
 
 //1.Create a booking with automatic seat locking
-export const createBooking = async (req, res) => {
+export const createBooking = async (req, res , next) => {
   try {
     const { showtime: showtimeId, seatsBooked } = req.body;
 
@@ -67,8 +68,62 @@ export const createBooking = async (req, res) => {
       message: "Booking created successfully. Seats locked.",
       data: booking,
     });
-
   } catch (error) {
     next(error);
   }
 };
+
+//2. Get all bookings (with deep population of showtime, movie, theater, and user)
+export const getAllBookings = async (req, res , next) => {
+  try {
+    //Pagination logic
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const safeLimit = Math.min(limit, 100);
+    const offset = (page - 1) * safeLimit;
+
+    //Filtering logic
+    const filter = {};
+    if (req.query.user) {
+      filter.user = req.query.user;
+    }
+    if (req.query.showtime) {
+      filter.showtime = req.query.showtime;
+    }
+
+    const totalBookings = await Booking.countDocuments(filter);
+
+    const bookings = await Booking.find(filter)
+      .populate({
+        path: "showtime",
+        populate: [
+          { path: "movie", select: "title posterImage duration genre" },
+          { path: "theater", select: "name location address" },
+        ],
+      })
+      .populate("user", "name email")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: "Bookings fetched successfully",
+      pagination: {
+        totalDocs: totalBookings,
+        totalPages: Math.ceil(totalBookings / limit),
+        currentPage: page,
+        limit,
+      },
+      count: bookings.length,
+      data: bookings,
+    });
+
+  } catch (error) {
+    next(error)
+  }
+};
+
+//3.Get single booking by ID
+
