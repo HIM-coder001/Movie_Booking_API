@@ -126,4 +126,33 @@ export const getAllBookings = async (req, res , next) => {
 };
 
 //3.Get single booking by ID
+export const getBooking = async ( req, res ) => {
+  try {
+    const booking = await Booking.findById( req.params.id )
+    .populate({
+        path: 'showtime',
+        populate: [
+          { path: 'movie', select: 'title posterImage duration genre' },
+          { path: 'theater', select: 'name location address' }
+        ]
+      })
+      .populate('user', 'name email');
 
+
+    if(!booking){
+      const error = new Error("Booking not found");
+      error.statusCode = 404;
+      return next(error);
+    };
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: "Booking fetched successfully",
+      data: booking,
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+}
