@@ -7,7 +7,7 @@ import errorHandler from './middleware/errorHandler.js'
 import movieRoutes from './routes/movie.routes.js';
 import theaterRoutes from './routes/theater.routes.js';
 import showtimeRoutes from './routes/showtime.routes.js';
- 
+import bookingRoutes from './routes/booking.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;  
@@ -19,6 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(movieRoutes);
 app.use(theaterRoutes);
 app.use(showtimeRoutes);
+app.use(bookingRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello, World!');
