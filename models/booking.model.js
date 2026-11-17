@@ -32,6 +32,7 @@ const bookingSchema = new mongoose.Schema({
       values: ["pending", "completed", "cancelled"],
       message: "Status must be one of pending, completed, or cancelled",
     },
+    default: 'pending' // Automatically sets to pending on creation
   },
   bookingReference: {
     type: String,
