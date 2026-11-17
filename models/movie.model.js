@@ -22,6 +22,18 @@ const movieSchema = new mongoose.Schema({
     director:{
         type: String, required: true
     },
+    duration: {
+        type: Number, // Duration in minutes (e.g., 120)
+        required: [true, 'Movie duration is required'],
+    },
+    genre: {
+        type: [String], //(e.g., ["Action", "Sci-Fi"])
+        required: [true, 'At least one genre is required'],
+    },
+    posterImage: {
+        type: String, 
+        required: [true, 'Poster image is required'],
+    },
     releaseStatus:{
         type: String, required: true, enum: ['RELEASED', 'COMING SOON', 'BLOCKED' , 'ENDED'], default: 'RELEASED'
     },
