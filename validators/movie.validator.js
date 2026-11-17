@@ -1,4 +1,5 @@
 import { z } from "zod";
+const urlRegex = /^https?:\/\/.+/;
 
 const movieValidationSchema = z.object({
   title: z
@@ -21,18 +22,20 @@ const movieValidationSchema = z.object({
 
   casts: z
     .array(
-      z.string({
-        required_error: "Cast member is required",
-        invalid_type_error: "Each cast member must be a string",
-      }).trim().min(1, "Cast member cannot be empty")
+      z
+        .string({
+          required_error: "Cast member is required",
+          invalid_type_error: "Each cast member must be a string",
+        })
+        .trim()
+        .min(1, "Cast member cannot be empty"),
     )
     .min(1, "Casts cannot be empty"),
 
-  trailerUrl: z
-    .url({
-      required_error: "Trailer URL is required",
-      invalid_type_error: "Trailer URL must be a valid URL",
-    }),
+  trailerUrl: z.url({
+    required_error: "Trailer URL is required",
+    invalid_type_error: "Trailer URL must be a valid URL",
+  }),
 
   language: z
     .string({
@@ -55,16 +58,40 @@ const movieValidationSchema = z.object({
     .trim()
     .min(1, "Director cannot be empty"),
 
+  duration: z
+    .number({
+      required_error: "Duration is required",
+      invalid_type_error: "Duration must be a number",
+    })
+    .min(1, "Duration must be at least 1 minute"),
+
+  genre: z
+    .array(
+      z
+        .string({
+          required_error: "Genre is required",
+          invalid_type_error: "Each genre must be a string",
+        })
+        .trim()
+        .min(1, "Genre cannot be empty"),
+    )
+    .min(1, "At least one genre is required"),
+
+  posterImage: z
+    .string({
+      required_error: "Poster image URL is required",
+      invalid_type_error: "Poster image URL must be a string",
+    })
+    .regex(urlRegex, "Poster image must be a valid HTTP or HTTPS URL"),
+
   releaseStatus: z.enum(["RELEASED", "COMING SOON", "BLOCKED", "ENDED"], {
     errorMap: () => ({
-      message: "Release status must be one of 'RELEASED', 'COMING SOON', 'BLOCKED', 'ENDED'",
+      message:
+        "Release status must be one of 'RELEASED', 'COMING SOON', 'BLOCKED', 'ENDED'",
     }),
   }),
 });
 
 export const updateMovieValidationSchema = movieValidationSchema.partial();
 
-
 export default movieValidationSchema;
-
- 
