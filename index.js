@@ -6,6 +6,7 @@ import errorHandler from './middleware/errorHandler.js'
 
 import movieRoutes from './routes/movie.routes.js';
 import theaterRoutes from './routes/theater.routes.js';
+import showtimeRoutes from './routes/showtime.routes.js';
  
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 //Routes
 app.use(movieRoutes);
 app.use(theaterRoutes);
+app.use(showtimeRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello, World!');
