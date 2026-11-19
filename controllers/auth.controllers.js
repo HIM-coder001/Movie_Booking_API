@@ -1,6 +1,6 @@
-import User from "../models/user.model.js";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import User from "../models/user.model.js";
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -32,26 +32,21 @@ const sendAuthResponse = (user, statusCode, message, res) => {
   });
 };
 
-/**
- * 1.Register
- *POST /mba/api/v1/auth/register
- */
+// POST /mba/api/v1/auth/register
 export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return next(
-        createAppError("An account with this email already exists", 409),
-      );
+      return next(createAppError("An account with this email already exists", 409));
     }
 
-    const user = User.create({
+    const user = await User.create({
       name,
       email,
       password,
-      role: "customer",
+      roles: "customer",
     });
 
     sendAuthResponse(user, 201, "Account registered successfully", res);
@@ -60,14 +55,13 @@ export const register = async (req, res, next) => {
   }
 };
 
-//2.Login
 // POST /mba/api/v1/auth/login
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email }).select("+password");
-    if (!user || !(await user.comparePassword(password, user.password))) {
+    if (!user || !(await user.comparePassword(password))) {
       return next(createAppError("Invalid email or password", 401));
     }
 
@@ -77,16 +71,15 @@ export const login = async (req, res, next) => {
   }
 };
 
-//3.Get my user details
 // GET /mba/api/v1/auth/me
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return next(createAppError("User not found", 404));
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: {
         user,
@@ -97,8 +90,7 @@ export const getMe = async (req, res, next) => {
   }
 };
 
-//4.Update Password
-// PATCH /api/v1/auth/update-password
+// PATCH /mba/api/v1/auth/update-password
 export const updatePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -108,7 +100,7 @@ export const updatePassword = async (req, res, next) => {
       return next(createAppError("User not found", 404));
     }
 
-    const isMatch = await user.comparePassword(currentPassword, user.password);
+    const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return next(createAppError("Current password is incorrect", 401));
     }
@@ -123,8 +115,7 @@ export const updatePassword = async (req, res, next) => {
   }
 };
 
-//Forgot password
-// POST /api/v1/auth/forgot-password
+// POST /mba/api/v1/auth/forgot-password
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -134,14 +125,7 @@ export const forgotPassword = async (req, res, next) => {
       return next(createAppError("No user found with that email address", 404));
     }
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
-
-    user.passwordResetToken = hashedToken;
-    user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
     res.status(200).json({
@@ -157,14 +141,16 @@ export const forgotPassword = async (req, res, next) => {
   }
 };
 
-//Reset Password
-// PATCH /api/v1/auth/reset-password/:token
+// PATCH /mba/api/v1/auth/reset-password/:token
 export const resetPassword = async (req, res, next) => {
   try {
     const { token } = req.params;
     const { password } = req.body;
 
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
 
     const user = await User.findOne({
       passwordResetToken: hashedToken,
@@ -187,8 +173,7 @@ export const resetPassword = async (req, res, next) => {
   }
 };
 
-//Delete account
-// DELETE /api/v1/auth/delete-account
+// DELETE /mba/api/v1/auth/delete-account
 export const deleteAccount = async (req, res, next) => {
   try {
     const deletedUser = await User.findByIdAndDelete(req.user.id);

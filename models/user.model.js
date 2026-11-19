@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
@@ -25,24 +26,24 @@ const userSchema = mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minLength: [8, "Password must be at least 8 characters"],
-      select: false, // Hides password by default from queries
+      select: false,
     },
     roles: {
-      type: string,
+      type: String,
       enum: ["customer", "admin"],
       default: "customer",
     },
+    passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 // --- Mongoose Middleware: Hash password before saving ---
-userSchema.pre("save ", async function (next) {
-  // Only run this function if password was actually modified
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
   try {
@@ -63,13 +64,11 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString("hex");
 
-  // Hash token and set to passwordResetToken field
   this.passwordResetToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
 
-  // Set expiration to 10 minutes
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
 
   return resetToken;
