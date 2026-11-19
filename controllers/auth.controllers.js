@@ -119,6 +119,40 @@ export const updatePassword = async (req, res, next) => {
 
     sendAuthResponse(user, 200, "Password updated successfully", res);
   } catch (error) {
-    next(error)
+    next(error);
+  }
+};
+
+//Forgot password
+// POST /api/v1/auth/forgot-password
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return next(createAppError("No user found with that email address", 404));
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset token generated",
+      data: {
+        resetToken,
+        expiresIn: "10 minutes",
+      },
+    });
+  } catch (error) {
+    next(error);
   }
 };
