@@ -32,7 +32,10 @@ const sendAuthResponse = (user, statusCode, message, res) => {
   });
 };
 
-//1.Register
+/**
+ * 1.Register
+ *POST /mba/api/v1/auth/register
+ */
 export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
@@ -57,8 +60,8 @@ export const register = async (req, res, next) => {
   }
 };
 
- 
 //2.Login
+// POST /mba/api/v1/auth/login
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -74,9 +77,9 @@ export const login = async (req, res, next) => {
   }
 };
 
-
 //3.Get my user details
-export const getMe = async (req, res , next) => {
+// GET /mba/api/v1/auth/me
+export const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -90,18 +93,32 @@ export const getMe = async (req, res , next) => {
       },
     });
   } catch (error) {
-    next(error)
+    next(error);
   }
 };
 
- /**  
 //4.Update Password
-export const updatePassword = async ( req , res , next ) => {
-    try {
+// PATCH /api/v1/auth/update-password
+export const updatePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
 
-        
-    } catch (error) {
-        
+    const user = await User.findById(req.user.id).select("+password");
+    if (!user) {
+      return next(createAppError("User not found", 404));
     }
-}
-*/
+
+    const isMatch = await user.comparePassword(currentPassword, user.password);
+    if (!isMatch) {
+      return next(createAppError("Current password is incorrect", 401));
+    }
+
+    user.password = newPassword;
+    user.passwordChangedAt = new Date(Date.now() - 1000);
+    await user.save();
+
+    sendAuthResponse(user, 200, "Password updated successfully", res);
+  } catch (error) {
+    next(error)
+  }
+};
