@@ -73,7 +73,8 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
- /**  
+
+
 //3.Get my user details
 export const getMe = async (req, res , next) => {
   try {
@@ -93,6 +94,7 @@ export const getMe = async (req, res , next) => {
   }
 };
 
+ /**  
 //4.Update Password
 export const updatePassword = async ( req , res , next ) => {
     try {
