@@ -156,3 +156,33 @@ export const forgotPassword = async (req, res, next) => {
     next(error);
   }
 };
+
+//Reset Password
+// PATCH /api/v1/auth/reset-password/:token
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return next(createAppError("Reset token is invalid or has expired", 400));
+    }
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.passwordChangedAt = new Date(Date.now() - 1000);
+    await user.save();
+
+    sendAuthResponse(user, 200, "Password reset successful", res);
+  } catch (error) {
+    next(error);
+  }
+};
