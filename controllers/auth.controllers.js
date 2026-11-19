@@ -57,7 +57,7 @@ export const register = async (req, res, next) => {
   }
 };
 
-/**  
+ 
 //2.Login
 export const login = async (req, res, next) => {
   try {
@@ -73,7 +73,7 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
-
+ /**  
 //3.Get my user details
 export const getMe = async (req, res , next) => {
   try {
