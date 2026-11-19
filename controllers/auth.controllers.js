@@ -186,3 +186,21 @@ export const resetPassword = async (req, res, next) => {
     next(error);
   }
 };
+
+//Delete account
+// DELETE /api/v1/auth/delete-account
+export const deleteAccount = async (req, res, next) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.user.id);
+    if (!deletedUser) {
+      return next(createAppError("User not found", 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
