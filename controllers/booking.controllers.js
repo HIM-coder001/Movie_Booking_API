@@ -7,14 +7,7 @@ export const createBooking = async (req, res, next) => {
   try {
     const { showtime: showtimeId, seatsBooked } = req.body;
 
-    // For now, we grab user ID from req.body (will come from JWT auth middleware later)
-    const userId = req.body.user;
-
-    if (!userId) {
-      const error = new Error("User identification is required for booking");
-      error.statusCode = 400;
-      return next(error);
-    }
+    const userId = req.user.id;
 
     // Fetch showtime to verify existence and get ticket price
     const showtime = await Showtime.findById(showtimeId);
@@ -53,14 +46,22 @@ export const createBooking = async (req, res, next) => {
     // Generate a unique human-readable ticket confirmation reference
     const bookingReference = `BKG-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-    const booking = await Booking.create({
-      showtime: showtimeId,
-      user: userId,
-      seatsBooked,
-      totalAmount,
-      bookingReference,
-      paymentStatus: "pending",
-    });
+    let booking;
+    try {
+      booking = await Booking.create({
+        showtime: showtimeId,
+        user: userId,
+        seatsBooked,
+        totalAmount,
+        bookingReference,
+        paymentStatus: "pending",
+      });
+    } catch (error) {
+      await Showtime.findByIdAndUpdate(showtimeId, {
+        $pull: { bookedSeats: { $in: seatsBooked } },
+      });
+      throw error;
+    }
 
     return res.status(201).json({
       success: true,
@@ -77,14 +78,16 @@ export const createBooking = async (req, res, next) => {
 export const getAllBookings = async (req, res, next) => {
   try {
     //Pagination logic
-    const page = parseInt(req.query.page) || 1;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = parseInt(req.query.limit) || 10;
-    const safeLimit = Math.min(limit, 100);
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
     const offset = (page - 1) * safeLimit;
 
-    //Filtering logic
+    // Customers only see their own bookings; admins may optionally filter by user.
     const filter = {};
-    if (req.query.user) {
+    if (req.user.roles !== "admin") {
+      filter.user = req.user.id;
+    } else if (req.query.user) {
       filter.user = req.query.user;
     }
     if (req.query.showtime) {
@@ -102,8 +105,8 @@ export const getAllBookings = async (req, res, next) => {
         ],
       })
       .populate("user", "name email")
-      .skip(skip)
-      .limit(limit)
+      .skip(offset)
+      .limit(safeLimit)
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -112,22 +115,27 @@ export const getAllBookings = async (req, res, next) => {
       message: "Bookings fetched successfully",
       pagination: {
         totalDocs: totalBookings,
-        totalPages: Math.ceil(totalBookings / limit),
+        totalPages: Math.ceil(totalBookings / safeLimit),
         currentPage: page,
-        limit,
+        limit: safeLimit,
       },
       count: bookings.length,
       data: bookings,
     });
   } catch (error) {
-    next(error);
+      next(error);
   }
 };
 
 //3.Get single booking by ID
 export const getBooking = async (req, res, next) => {
   try {
-    const booking = await Booking.findById(req.params.id)
+    const filter = { _id: req.params.id };
+    if (req.user.roles !== "admin") {
+      filter.user = req.user.id;
+    }
+
+    const booking = await Booking.findOne(filter)
       .populate({
         path: "showtime",
         populate: [
@@ -157,7 +165,12 @@ export const getBooking = async (req, res, next) => {
 //4. Update booking payment status (and release seats if cancelled)
 export const updateBooking = async (req, res, next) => {
   try {
-    const booking = await Booking.findByIdAndUpdate(req.params.id);
+    const filter = { _id: req.params.id };
+    if (req.user.roles !== "admin") {
+      filter.user = req.user.id;
+    }
+
+    const booking = await Booking.findOne(filter);
     if (!booking) {
       const error = new Error("Booking not found");
       error.statusCode = 404;
@@ -194,7 +207,12 @@ export const updateBooking = async (req, res, next) => {
 //5.Delete Booking
 export const deleteBooking = async (req, res, next) => {
   try {
-    const booking = await Booking.findByIdAndDelete(req.params.id);
+    const filter = { _id: req.params.id };
+    if (req.user.roles !== "admin") {
+      filter.user = req.user.id;
+    }
+
+    const booking = await Booking.findOne(filter);
     if (!booking) {
       const error = new Error("Booking not found");
       error.statusCode = 404;
@@ -217,6 +235,6 @@ export const deleteBooking = async (req, res, next) => {
       data: null,
     });
   } catch (error) {
-  next(error)
+  next(error);
   }
 };
