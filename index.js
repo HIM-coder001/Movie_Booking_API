@@ -4,6 +4,7 @@ dotenv.config();
 import mongoose from 'mongoose';
 import errorHandler from './middleware/errorHandler.js'
 
+import authRoutes from './routes/auth.routes.js';
 import movieRoutes from './routes/movie.routes.js';
 import theaterRoutes from './routes/theater.routes.js';
 import showtimeRoutes from './routes/showtime.routes.js';
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 //Routes
+app.use(authRoutes);
 app.use(movieRoutes);
 app.use(theaterRoutes);
 app.use(showtimeRoutes);
