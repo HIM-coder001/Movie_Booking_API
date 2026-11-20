@@ -110,10 +110,11 @@ export const getShowtime = async (req, res, next) => {
 };
 
 //4.Update showtime
-export const updateShowtime = async (req, res) => {
+export const updateShowtime = async (req, res, next) => {
   try {
     const showtime = await Showtime.findByIdAndUpdate(req.params.id, req.body, {
       returnDocument: true,
+      runValidators: true,
     })
       .populate("movie")
       .populate("theater");
@@ -136,7 +137,7 @@ export const updateShowtime = async (req, res) => {
 };
 
 //5.Delete showtime
-export const deleteShowtime = async (req, res) => {
+export const deleteShowtime = async (req, res, next) => {
   try {
     const showtime = await Showtime.findByIdAndDelete(req.params.id);
 
